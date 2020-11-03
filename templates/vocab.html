@@ -1,0 +1,212 @@
+<!DOCTYPE HTML PUBLIC "-//IETF//DTD HTML//EN">
+<html>
+<head>
+    <!-- Bootstrap requires the following three meta tags to appear first -->
+    <meta charset="utf-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+
+    <title>Vocabulary Anagram</title>
+
+    <!-- Javascript and Cascading Style Sheets (css) libraries -->
+    <!-- mostly from content delivery networks                 -->
+
+    <!-- jquery; CDN load is usually quick because it's likely cached -->
+    <script type="text/javascript"
+         src="https://ajax.googleapis.com/ajax/libs/jquery/1.11.3/jquery.min.js">
+    </script>
+
+    <!-- Bootstrap stylesheet let's us have a 'responsive' layout; -->
+    <!-- 12 column grid rearranges itself for smaller screens or windows. -->
+
+    <!-- per http://getbootstrap.com/getting-started/  -->
+    <!-- Latest compiled and minified CSS -->
+    <link rel="stylesheet"
+     href="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.6/css/bootstrap.min.css"
+     integrity="sha384-1q8mTJOASx8j1Au+a5WDVnPi2lkFfwwEAa8hDDdjZlpLegxhjVME1fgjWPGmkzs7"
+      crossorigin="anonymous">
+
+    <!-- Latest compiled and minified JavaScript -->
+    <script
+     src="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.6/js/bootstrap.min.js"
+     integrity="sha384-0mSbJDEHialfmuBBQP6A4Qrprq5OVfW37PRR3j5ELqxss1yVqOtnepnHVP9aJ7xS"
+     crossorigin="anonymous">
+    </script>
+
+    <!-- Our own css file.  Note how we can link directly here and not -->
+    <!-- write any routing code in the Flask application. -->
+    <link rel="stylesheet" href="/static/jumble.css" />
+
+</head>
+
+<body>
+<div class="container">
+<div class="row">
+    <div class="col-xs-6 text-center">
+        <h1>Words</h1>
+    </div>
+</div>
+
+<!-- vocab list container for clearing highlighting -->
+<div id="vocab">
+<div class="row">
+    {% for word in g.vocab %}
+        <div class="col-xs-2 text-center">{{ word }}</div>
+        <!-- <div class="col-xs-2 text-center"> <mark>{{ word }}</mark> </div> -->
+        {% if loop.index is divisibleby 3 %}
+            </div> <!-- row -->
+            <div class="row">
+        {% endif %}
+    {% endfor %}
+    </div> <!-- row -->
+</div> <!-- end vocab container -->
+<br />
+
+<div class="row">
+    <div class="col-xs-6 text-center">
+    Use letters from
+    </div>
+    </div><div class="row">
+    <div id="jumbled" class="col-xs-6 text-center lead">
+    <!-- original implementation -->
+    <!-- <strong>{{ session.jumble }}</strong> -->
+
+    <!-- update implementation to allow for dynamic graying out of letters -->
+    {% for letter in session.jumbled_list %}
+        <!-- <div class="col-xs-2 text-center"> {{ word }} </div> -->
+        <strong class="jumbled_word {{ letter }}">{{ letter }}</strong>
+    {% endfor %}
+
+    </div>
+    </div><div class="row">
+    <div class="col-xs-6 text-center">
+        to spell {{session.target_count}} words from the list.
+    </div> <!-- col -->
+</div> <!-- row -->
+<br />
+<div class="row">
+  <div class="col-xs-6 text-center">
+  <form id="entry" method="POST" action="/_check">
+    <label for="attempt">Word:</label>
+    <input id="attempt" name="attempt" type="text" width="15" autocomplete="off" autofocus/>
+  </form>
+</div></div>
+
+<br />
+
+<!-- Filler content to be updated later -->
+<h2 id="resultHeader"></h2>
+<p id="results"/>
+<p class="message"/>
+
+
+<script>
+    // Suppress normal form submission
+    $("#entry").submit(function(event) {event.preventDefault();});
+
+    /* I opted to add an additional onChange listener here, since it made
+       everything respond much faster than waiting for keyUp. */
+    document.getElementById('attempt').addEventListener('input', function(){
+        // RegEx to prevent non-alphabetical input. Based on implementation here:
+        // https://stackoverflow.com/questions/52187217/how-to-allow-only-english-letters-in-input-fields
+        this.value = this.value.replace(/[^A-z]+/ig, '');
+
+        // only permit characters in the jumble to be entered
+        newStr = "";
+        available_chars = "{{ session.jumble }}".split('');
+        for (let i = 0; i < this.value.length; i++) {
+            if (available_chars.includes(this.value[i])) {
+                newStr += this.value[i];
+                available_chars.splice(available_chars.indexOf(this.value[i]), 1);
+            }
+        }
+        this.value = newStr;
+
+        // update highlighting and grayed-out letters
+        highlight($("#attempt").val());
+        resetJumble();
+    });
+
+    // Partial highlight function based on implementation found here:
+    // https://stackoverflow.com/questions/8644428/how-to-highlight-text-using-javascript
+    function highlight(text) {
+        clearHighlight();
+        if (text == "") return;
+        var all_words = document.getElementsByClassName("col-xs-2 text-center");
+
+        for (var i = 0; i < all_words.length; i ++) {
+            var inputText = all_words[i];
+            var innerHTML = inputText.innerHTML;
+            var index = innerHTML.indexOf(text);
+            if (index >= 0) {
+                var newHTML = innerHTML.substring(0, index) + "<mark class='highlight'>" + text + "</mark>";
+                newHTML += innerHTML.substring(index + text.length);
+                inputText.innerHTML = newHTML;
+            }
+        }
+    } // end highlight
+
+    function clearHighlight() {
+        obj = document.getElementById("vocab");
+        innerHTML = obj.innerHTML;
+        innerHTML = innerHTML.replaceAll("<mark class=\"highlight\">", "");
+        innerHTML = innerHTML.replaceAll("</mark>", "");
+        obj.innerHTML = innerHTML;
+    }
+
+    function resetJumble(rslt) {
+        // reset jumble text
+        $(".jumbled_word").css('color', 'black');
+        $(".jumbled_word").css('text-decoration', 'none');
+
+        // gray out and strikethrough used letters
+        entry = $("#attempt").val();
+        for (var i = 0; i < entry.length; i++) {
+            $('.' + entry[i]).css('color', 'gray');
+            $('.' + entry[i]).css('text-decoration', 'line-through');
+        }
+    }
+
+    // On Keyup event
+    $("#attempt").keyup(function(event) {
+        var txt = $("#attempt").val();  // Current content of the input field
+        var keycode = event.which;      // The key that just went up
+        var letter = String.fromCharCode(keycode);
+
+        if (! "ABCDEFGHIJKLMNOPQRSTUVWXYZ".includes(letter)) { return }
+        $(".message").html("");
+
+        $.getJSON( "/_check", { text: txt },
+            function(data) {
+                rslt = data.result;
+
+                if (rslt.matched && rslt.in_jumble && !rslt.already_matched) {
+                    $("#attempt").val("");
+                    $(".message").html(""); // clear message on successful entry
+                }
+
+                if(rslt.matches.length > 0) { // if a match has been found
+                    $("#resultHeader").html("You found ");
+                    $("#results").html(""); // initialize to empty each update
+                    for(var i = 0; i < rslt.matches.length; i++) {
+                        $("#results").append(rslt.matches[i] + "<br />");
+                    }
+                    resetJumble();
+                }
+                $(".message").html(rslt.msg);
+
+                clearHighlight();
+                highlight($("#attempt").val());
+
+                if (rslt.game_complete) {
+                    $(".message").html("You win!");
+                    location.href = "/success";
+                    }
+                }
+            );
+        });
+</script>
+
+
+ </div> <!-- container -->
+</body> </html>
