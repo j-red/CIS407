@@ -1,15 +1,14 @@
 # --------------------- SETUP ---------------------
 
-import flask, os, urllib.request, pathlib, logging, random, string
+import flask, os, urllib.request, pathlib, logging, random, string, time, shutil
 from flask import Flask, flash, request, redirect, render_template, session, send_file
 from werkzeug.utils import secure_filename
 from PyPDF2 import PdfFileMerger
 
 ROOT = os.getcwd()
-ID_SIZE = 8
+ID_SIZE = 16
 UPLOAD_FOLDER = ROOT + '/uploads'
-# ALLOWED_EXTENSIONS = set(['txt', 'pdf', 'png', 'jpg', 'jpeg'])
-ALLOWED_EXTENSIONS = set(['pdf'])
+ALLOWED_EXTENSIONS = set(['pdf']) # only allow PDF files
 
 app = Flask(__name__)
 app.config.from_pyfile('config.py') # configure from config.py
@@ -40,8 +39,8 @@ def merge(pdfs, dir):
 			os.chdir(prev_wd) # return to previous working directory
 			return
 
-	new_name = "_".join(pdfs).replace(".pdf", "") + ".pdf"
-	new_name = new_name[:MAX_LENGTH]
+	new_name = "_".join(pdfs).replace(".pdf", "")
+	new_name = new_name[:MAX_LENGTH] + ".pdf"
 	output_path = os.path.join(WRITE_DIR, new_name)
 
 	try:
@@ -58,6 +57,18 @@ def merge(pdfs, dir):
 	return output_path
 
 
+def clear_old(mins=2, hrs=0, days=0):
+	""" Whenever this function is called, delete all tmp upload directories
+		older than two minutes. """
+	now = time.time()
+	for f in os.listdir(app.config['UPLOAD_FOLDER']):
+		path = os.path.join(app.config['UPLOAD_FOLDER'], f)
+		if os.stat(path).st_mtime < now - (days * 24 + hrs * 3600 + mins * 60):
+			app.logger.debug(f"Deleting {path}")
+			shutil.rmtree(path)
+		else:
+			app.logger.debug(f"{f} is too young to delete.")
+
 # --------------------- END SETUP ---------------------
 
 def allowed_file(filename):
@@ -65,8 +76,9 @@ def allowed_file(filename):
 
 @app.route('/')
 def upload_form():
+	clear_old()
 	new_session_ID()
-	flash(flask.session["SESSION_ID"])
+	# flash(flask.session["SESSION_ID"])
 	return render_template('upload.html')
 
 @app.route('/', methods=['POST'])
@@ -117,7 +129,7 @@ def upload_file():
 				flash('Error: Only PDF files are permitted.')
 				return redirect(request.url)
 
-	flash("Merging PDFs...")
+	# flash("Merging PDFs...")
 	new_file = merge(flask.session["FILENAMES"], my_folder) # merge PDFs
 	return send_file(new_file, as_attachment=True)
 	# return redirect('/')

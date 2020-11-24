@@ -1,11 +1,25 @@
 <!doctype html>
 <head>
 	<title>Python Flask File Upload Example</title>
+	<!-- <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/1.12.4/jquery.min.js" /> -->
 	<link rel="stylesheet" href="/static/main.css" />
+	<link rel="stylesheet" href="/static/fireflies.css" />
+	<!-- <link rel="stylesheet" href="/static/lines.css" /> -->
+	<link href='https://fonts.googleapis.com/css?family=Abel' rel='stylesheet' />
 </head>
 
 <body>
-<h2>Select a file to upload</h2>
+
+<!-- backgrounds -->
+<div id="back"></div>
+<div id="front"></div>
+<!-- <div class="lines">
+	<div class="line"></div>
+	<div class="line"></div>
+	<div class="line"></div>
+</div> -->
+
+
 <p>
 	{% with messages = get_flashed_messages() %}
 	{% if messages %}
@@ -17,15 +31,25 @@
 	{% endif %}
 	{% endwith %}
 </p>
-<form method="post" action="/" enctype="multipart/form-data">
-	<dl>
-		<p>
-			<input type="file" name="uploads" autocomplete="off" multiple required accept="application/pdf">
-		</p>
-	</dl>
-	<p>
-		<input type="submit" value="Submit">
-	</p>
-</form>
+
+<div class="content">
+	<h2 style="padding-bottom: 50px;">Select PDFs to merge</h2>
+
+	<div id="form-container">
+		<form class="pdf-submission" method="post" action="/" enctype="multipart/form-data">
+			<dl style="padding-top: 50px;">
+				<p>
+					<input type="file" id="fileInput" name="uploads" autocomplete="off" multiple required accept="application/pdf">
+				</p>
+			</dl>
+
+			<p>
+				<input type="submit" value="Submit">
+			</p>
+		</form>
+	</div>
+
+</div>
+
 
 </body>
