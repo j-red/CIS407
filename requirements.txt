@@ -1,5 +1,5 @@
 Flask
-nose
 pep8
 autopep8
-
+werkzeug
+PyPDF2

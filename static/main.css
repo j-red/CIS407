@@ -1,0 +1,14 @@
+body {
+    background-color: #3d3d3d;
+    color:white;
+}
+
+.flash {
+    color: red;
+}
+
+.highlight {
+    color: black;
+    background-color: coral;
+    padding: 0px;
+}
